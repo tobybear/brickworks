@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2022-2024 Orastron Srl unipersonale
+ * Copyright (C) 2022-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.1.1 }}}
+ *  version {{{ 1.2.3 }}}
  *  requires {{{ bw_common bw_math bw_one_pole }}}
  *  description {{{
  *    State variable filter (2nd order, 12 dB/oct) model with separated lowpass,
@@ -28,9 +28,33 @@
  *  }}}
  *  changelog {{{
  *    <ul>
- *      <li>Version <strong>1.1.1</strong>:
+ *      <li>Version <strong>1.2.3</strong>:
  *        <ul>
- *          <li>Added debugging check in <code>bw_svf_process_multi()</code> to
+ *          <li>Loosened validity checks for certain internal coefficients to
+ *              allow valid extreme values.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.2</strong>:
+ *        <ul>
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *          <li>Small implementation optimization.</li>
+ *          <li>Updated dependencies.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.1</strong>:
+ *        <ul>
+ *          <li>Now using <code>BW_NULL</code> in the C++ API and
+ *              implementation.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *          <li>Added debugging checks from <code>bw_svf_process()</code> to
+ *              <code>bw_svf_process_multi()</code>.</li>
+ *          <li>Added debugging checks in <code>bw_svf_process_multi()</code> to
  *              ensure that buffers used for both input and output appear at the
  *              same channel indices.</li>
  *        </ul>
@@ -113,11 +137,17 @@
 #ifndef BW_SVF_H
 #define BW_SVF_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
+
+/*** Public API ***/
 
 /*! api {{{
  *    #### bw_svf_coeffs
@@ -332,7 +362,7 @@ static inline char bw_svf_state_is_valid(
  *    than or equal to that of `bw_svf_state`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -341,10 +371,15 @@ static inline char bw_svf_state_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#include <bw_math.h>
-#include <bw_one_pole.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_math.h"
+# include "bw_one_pole.h"
+#else
+# include <bw_math.h>
+# include <bw_one_pole.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -374,7 +409,6 @@ struct bw_svf_coeffs {
 	float				t_k;
 	float				prewarp_freq_max;
 
-	float				t;
 	float				kf;
 	float				kbl;
 	float				k;
@@ -459,8 +493,7 @@ static inline void bw_svf_do_update_coeffs(
 			if (prewarp_freq_changed) {
 				prewarp_freq_cur = bw_one_pole_process1_sticky_rel(&coeffs->smooth_coeffs, &coeffs->smooth_prewarp_freq_state, prewarp_freq);
 				const float f = bw_minf(prewarp_freq_cur, coeffs->prewarp_freq_max);
-				coeffs->t = bw_tanf(coeffs->t_k * f);
-				coeffs->kf = coeffs->t * bw_rcpf(f);
+				coeffs->kf = bw_tanf(coeffs->t_k * f) * bw_rcpf(f);
 			}
 			coeffs->kbl = coeffs->kf * cutoff_cur;
 		}
@@ -771,6 +804,10 @@ static inline void bw_svf_process_multi(
 	BW_ASSERT_DEEP(coeffs->state >= bw_svf_coeffs_state_reset_coeffs);
 	BW_ASSERT(state != BW_NULL);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(state[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_svf_state_is_valid(coeffs, state[i]));
+	}
 	for (size_t i = 0; i < n_channels; i++)
 		for (size_t j = i + 1; j < n_channels; j++)
 			BW_ASSERT(state[i] != state[j]);
@@ -780,6 +817,10 @@ static inline void bw_svf_process_multi(
 	BW_ASSERT(y_lp == BW_NULL || y_hp == BW_NULL || y_lp != y_hp);
 	BW_ASSERT(y_bp == BW_NULL || y_hp == BW_NULL || y_bp != y_hp);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(x[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x[i], n_samples));
+	}
 	if (y_lp != BW_NULL) {
 		for (size_t i = 0; i < n_channels; i++)
 			for (size_t j = i + 1; j < n_channels; j++)
@@ -922,6 +963,14 @@ static inline void bw_svf_process_multi(
 
 	BW_ASSERT_DEEP(bw_svf_coeffs_is_valid(coeffs));
 	BW_ASSERT_DEEP(coeffs->state >= bw_svf_coeffs_state_reset_coeffs);
+#ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT_DEEP(bw_svf_state_is_valid(coeffs, state[i]));
+		BW_ASSERT_DEEP(y_lp != BW_NULL && y_lp[i] != BW_NULL ? bw_has_only_finite(y_lp[i], n_samples) : 1);
+		BW_ASSERT_DEEP(y_bp != BW_NULL && y_bp[i] != BW_NULL ? bw_has_only_finite(y_bp[i], n_samples) : 1);
+		BW_ASSERT_DEEP(y_hp != BW_NULL && y_hp[i] != BW_NULL ? bw_has_only_finite(y_hp[i], n_samples) : 1);
+	}
+#endif
 }
 
 static inline void bw_svf_set_cutoff(
@@ -1014,11 +1063,9 @@ static inline char bw_svf_coeffs_is_valid(
 	}
 
 	if (coeffs->state >= bw_svf_coeffs_state_reset_coeffs) {
-		if (!bw_is_finite(coeffs->t) || coeffs->t <= 0.f)
+		if (!bw_is_finite(coeffs->kf) || coeffs->kf < 0.f)
 			return 0;
-		if (!bw_is_finite(coeffs->kf) || coeffs->kf <= 0.f)
-			return 0;
-		if (!bw_is_finite(coeffs->kbl) || coeffs->kbl <= 0.f)
+		if (!bw_is_finite(coeffs->kbl) || coeffs->kbl < 0.f)
 			return 0;
 		if (!bw_is_finite(coeffs->k) || coeffs->k <= 0.f)
 			return 0;
@@ -1066,12 +1113,15 @@ static inline char bw_svf_state_is_valid(
 	return 1;
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -1080,7 +1130,7 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::SVF
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class SVF {
 public:
 	SVF();
@@ -1090,31 +1140,31 @@ public:
 
 	void reset(
 		float               x0 = 0.f,
-		float * BW_RESTRICT yLp0 = nullptr,
-		float * BW_RESTRICT yBp0 = nullptr,
-		float * BW_RESTRICT yHp0 = nullptr);
+		float * BW_RESTRICT yLp0 = BW_NULL,
+		float * BW_RESTRICT yBp0 = BW_NULL,
+		float * BW_RESTRICT yHp0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yLp0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yBp0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yHp0);
-#endif
+# endif
 
 	void reset(
 		const float * x0,
-		float *       yLp0 = nullptr,
-		float *       yBp0 = nullptr,
-		float *       yHp0 = nullptr);
+		float *       yLp0 = BW_NULL,
+		float *       yBp0 = BW_NULL,
+		float *       yHp0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		std::array<float, N_CHANNELS>               x0,
-		std::array<float, N_CHANNELS> * BW_RESTRICT yLp0 = nullptr,
-		std::array<float, N_CHANNELS> * BW_RESTRICT yBp0 = nullptr,
-		std::array<float, N_CHANNELS> * BW_RESTRICT yHp0 = nullptr);
-#endif
+		std::array<float, N_CHANNELS> * BW_RESTRICT yLp0 = BW_NULL,
+		std::array<float, N_CHANNELS> * BW_RESTRICT yBp0 = BW_NULL,
+		std::array<float, N_CHANNELS> * BW_RESTRICT yHp0 = BW_NULL);
+# endif
 
 	void process(
 		const float * const * x,
@@ -1123,14 +1173,14 @@ public:
 		float * const *       yHp,
 		size_t                nSamples);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<const float *, N_CHANNELS> x,
 		std::array<float *, N_CHANNELS>       yLp,
 		std::array<float *, N_CHANNELS>       yBp,
 		std::array<float *, N_CHANNELS>       yHp,
 		size_t                                nSamples);
-#endif
+# endif
 
 	void setCutoff(
 		float value);
@@ -1179,9 +1229,9 @@ inline void SVF<N_CHANNELS>::reset(
 		float * BW_RESTRICT yBp0,
 		float * BW_RESTRICT yHp0) {
 	bw_svf_reset_coeffs(&coeffs);
-	if (yLp0 != nullptr) {
-		if (yBp0 != nullptr) {
-			if (yHp0 != nullptr) {
+	if (yLp0 != BW_NULL) {
+		if (yBp0 != BW_NULL) {
+			if (yHp0 != BW_NULL) {
 				for (size_t i = 0; i < N_CHANNELS; i++)
 					bw_svf_reset_state(&coeffs, states + i, x0, yLp0 + i, yBp0 + i, yHp0 + i);
 			} else {
@@ -1191,7 +1241,7 @@ inline void SVF<N_CHANNELS>::reset(
 				}
 			}
 		} else {
-			if (yHp0 != nullptr) {
+			if (yHp0 != BW_NULL) {
 				for (size_t i = 0; i < N_CHANNELS; i++) {
 					float vBp;
 					bw_svf_reset_state(&coeffs, states + i, x0, yLp0 + i, &vBp, yHp0 + i);
@@ -1204,8 +1254,8 @@ inline void SVF<N_CHANNELS>::reset(
 			}
 		}
 	} else {
-		if (yBp0 != nullptr) {
-			if (yHp0 != nullptr) {
+		if (yBp0 != BW_NULL) {
+			if (yHp0 != BW_NULL) {
 				for (size_t i = 0; i < N_CHANNELS; i++) {
 					float vLp;
 					bw_svf_reset_state(&coeffs, states + i, x0, &vLp, yBp0 + i, yHp0 + i);
@@ -1217,7 +1267,7 @@ inline void SVF<N_CHANNELS>::reset(
 				}
 			}
 		} else {
-			if (yHp0 != nullptr) {
+			if (yHp0 != BW_NULL) {
 				for (size_t i = 0; i < N_CHANNELS; i++) {
 					float vLp, vBp;
 					bw_svf_reset_state(&coeffs, states + i, x0, &vLp, &vBp, yHp0 + i);
@@ -1232,16 +1282,16 @@ inline void SVF<N_CHANNELS>::reset(
 	}
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void SVF<N_CHANNELS>::reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yLp0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yBp0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yHp0) {
-	reset(x0, yLp0 != nullptr ? yLp0->data() : nullptr, yBp0 != nullptr ? yBp0->data() : nullptr, yHp0 != nullptr ? yHp0->data() : nullptr);
+	reset(x0, yLp0 != BW_NULL ? yLp0->data() : BW_NULL, yBp0 != BW_NULL ? yBp0->data() : BW_NULL, yHp0 != BW_NULL ? yHp0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void SVF<N_CHANNELS>::reset(
@@ -1253,16 +1303,16 @@ inline void SVF<N_CHANNELS>::reset(
 	bw_svf_reset_state_multi(&coeffs, statesP, x0, yLp0, yBp0, yHp0, N_CHANNELS);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void SVF<N_CHANNELS>::reset(
 		std::array<float, N_CHANNELS>               x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yLp0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yBp0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yHp0) {
-	reset(x0.data(), yLp0 != nullptr ? yLp0->data() : nullptr, yBp0 != nullptr ? yBp0->data() : nullptr, yHp0 != nullptr ? yHp0->data() : nullptr);
+	reset(x0.data(), yLp0 != BW_NULL ? yLp0->data() : BW_NULL, yBp0 != BW_NULL ? yBp0->data() : BW_NULL, yHp0 != BW_NULL ? yHp0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void SVF<N_CHANNELS>::process(
@@ -1274,7 +1324,7 @@ inline void SVF<N_CHANNELS>::process(
 	bw_svf_process_multi(&coeffs, statesP, x, yLp, yBp, yHp, N_CHANNELS, nSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void SVF<N_CHANNELS>::process(
 		std::array<const float *, N_CHANNELS> x,
@@ -1284,7 +1334,7 @@ inline void SVF<N_CHANNELS>::process(
 		size_t                                nSamples) {
 	process(x.data(), yLp.data(), yBp.data(), yHp.data(), nSamples);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void SVF<N_CHANNELS>::setCutoff(

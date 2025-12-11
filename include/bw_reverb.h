@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2023, 2024 Orastron Srl unipersonale
+ * Copyright (C) 2023-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.1.1 }}}
+ *  version {{{ 1.2.2 }}}
  *  requires {{{
  *    bw_buf bw_common bw_delay bw_dry_wet bw_gain bw_lp1 bw_math bw_one_pole
  *    bw_osc_sin bw_phase_gen
@@ -35,11 +35,33 @@
  *  }}}
  *  changelog {{{
  *    <ul>
- *      <li>Version <strong>1.1.1</strong>:
+ *      <li>Version <strong>1.2.2</strong>:
  *        <ul>
- *          <li>Added debugging check in <code>bw_reverb_process_multi()</code>
+ *          <li>Added <code>memReq</code>/<code>memSet</code> to C++ API.</li>
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *          <li>Updated dependencies.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.1</strong>:
+ *        <ul>
+ *          <li>Now using <code>BW_NULL</code> in the C++ API and
+ *              implementation.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *          <li>Added missing <code>BW_RESTRICT</code> to arguments of
+ *              <code>bw_reverb_process1()</code>.</li>
+ *          <li>Added debugging checks from <code>bw_reverb_process()</code> to
+ *              <code>bw_reverb_process_multi()</code>.</li>
+ *          <li>Added debugging checks in <code>bw_reverb_process_multi()</code>
  *              to ensure that buffers used for both input and output appear at
  *              the same channel indices.</li>
+ *          <li>Removed wrong sentence from the documentation of
+ *              <code>bw_reverb_reset_state()</code>.</li>
  *        </ul>
  *      </li>
  *      <li>Version <strong>1.1.0</strong>:
@@ -92,11 +114,17 @@
 #ifndef BW_REVERB_H
 #define BW_REVERB_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
+
+/*** Public API ***/
 
 /*! api {{{
  *    #### bw_reverb_coeffs
@@ -167,8 +195,6 @@ static inline void bw_reverb_reset_state(
  *    The corresponding initial output values are put into `y_l_0` (left) and
  *    `y_r_0` (right).
  *
- *    Returns the corresponding initial output value.
- *
  *    #### bw_reverb_reset_state_multi()
  *  ```>>> */
 static inline void bw_reverb_reset_state_multi(
@@ -208,8 +234,8 @@ static inline void bw_reverb_process1(
 	bw_reverb_state * BW_RESTRICT        state,
 	float                                x_l,
 	float                                x_r,
-	float *                              y_l,
-	float *                              y_r);
+	float * BW_RESTRICT                  y_l,
+	float * BW_RESTRICT                  y_r);
 /*! <<<```
  *    Processes one set of input samples `x_l` (left) and `x_r` (right) using
  *    `coeffs`, while using and updating `state`. The left and right output
@@ -338,7 +364,7 @@ static inline char bw_reverb_state_is_valid(
  *    than or equal to that of `bw_reverb_state`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -347,16 +373,27 @@ static inline char bw_reverb_state_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#include <bw_delay.h>
-#include <bw_lp1.h>
-#include <bw_phase_gen.h>
-#include <bw_osc_sin.h>
-#include <bw_gain.h>
-#include <bw_dry_wet.h>
-#include <bw_one_pole.h>
-#include <bw_math.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_delay.h"
+# include "bw_lp1.h"
+# include "bw_phase_gen.h"
+# include "bw_osc_sin.h"
+# include "bw_gain.h"
+# include "bw_dry_wet.h"
+# include "bw_one_pole.h"
+# include "bw_math.h"
+#else
+# include <bw_delay.h>
+# include <bw_lp1.h>
+# include <bw_phase_gen.h>
+# include <bw_osc_sin.h>
+# include <bw_gain.h>
+# include <bw_dry_wet.h>
+# include <bw_one_pole.h>
+# include <bw_math.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -840,8 +877,8 @@ static inline void bw_reverb_process1(
 		bw_reverb_state * BW_RESTRICT        state,
 		float                                x_l,
 		float                                x_r,
-		float *                              y_l,
-		float *                              y_r) {
+		float * BW_RESTRICT                  y_l,
+		float * BW_RESTRICT                  y_r) {
 	BW_ASSERT(coeffs != BW_NULL);
 	BW_ASSERT_DEEP(bw_reverb_coeffs_is_valid(coeffs));
 	BW_ASSERT_DEEP(coeffs->state >= bw_reverb_coeffs_state_reset_coeffs);
@@ -993,6 +1030,11 @@ static inline void bw_reverb_process_multi(
 	BW_ASSERT_DEEP(coeffs->state >= bw_reverb_coeffs_state_reset_coeffs);
 	BW_ASSERT(state != BW_NULL);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(state[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_reverb_state_is_valid(coeffs, state[i]));
+		BW_ASSERT_DEEP(state[i]->state >= bw_reverb_state_state_reset_state);
+	}
 	for (size_t i = 0; i < n_channels; i++)
 		for (size_t j = i + 1; j < n_channels; j++)
 			BW_ASSERT(state[i] != state[j]);
@@ -1003,6 +1045,15 @@ static inline void bw_reverb_process_multi(
 	BW_ASSERT(y_r != BW_NULL);
 	BW_ASSERT(y_l != y_r);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(x_l[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x_l[i], n_samples));
+		BW_ASSERT(x_r[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x_r[i], n_samples));
+		BW_ASSERT(y_l[i] != BW_NULL);
+		BW_ASSERT(y_r[i] != BW_NULL);
+		BW_ASSERT(y_l[i] != y_r[i]);
+	}
 	for (size_t i = 0; i < n_channels; i++)
 		for (size_t j = i + 1; j < n_channels; j++) {
 			BW_ASSERT(y_l[i] != y_l[j]);
@@ -1029,6 +1080,13 @@ static inline void bw_reverb_process_multi(
 
 	BW_ASSERT_DEEP(bw_reverb_coeffs_is_valid(coeffs));
 	BW_ASSERT_DEEP(coeffs->state >= bw_reverb_coeffs_state_reset_coeffs);
+#ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT_DEEP(bw_reverb_state_is_valid(coeffs, state[i]));
+		BW_ASSERT_DEEP(bw_has_only_finite(y_l[i], n_samples));
+		BW_ASSERT_DEEP(bw_has_only_finite(y_r[i], n_samples));
+	}
+#endif
 }
 
 static inline void bw_reverb_set_predelay(
@@ -1201,12 +1259,15 @@ static inline char bw_reverb_state_is_valid(
 		&& bw_delay_state_is_valid(coeffs ? &coeffs->delay_d4_coeffs : BW_NULL, &state->delay_d4_state);
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -1215,7 +1276,7 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::Reverb
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class Reverb {
 public:
 	Reverb();
@@ -1223,35 +1284,39 @@ public:
 	~Reverb();
 
 	void setSampleRate(
-		float sampleRate);
+		float                sampleRate,
+		size_t * BW_RESTRICT memReq = BW_NULL);
+
+	void memSet(
+		void * BW_RESTRICT mem);
 
 	void reset(
 		float               xL0 = 0.f,
 		float               xR0 = 0.f,
-		float * BW_RESTRICT yL0 = nullptr,
-		float * BW_RESTRICT yR0 = nullptr);
+		float * BW_RESTRICT yL0 = BW_NULL,
+		float * BW_RESTRICT yR0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		float                                       xL0,
 		float                                       xR0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yL0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yR0);
-#endif
+# endif
 
 	void reset(
 		const float * xL0,
 		const float * xR0,
-		float *       yL0 = nullptr,
-		float *       yR0 = nullptr);
+		float *       yL0 = BW_NULL,
+		float *       yR0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		std::array<float, N_CHANNELS>               xL0,
 		std::array<float, N_CHANNELS>               xR0,
-		std::array<float, N_CHANNELS> * BW_RESTRICT yL0 = nullptr,
-		std::array<float, N_CHANNELS> * BW_RESTRICT yR0 = nullptr);
-#endif
+		std::array<float, N_CHANNELS> * BW_RESTRICT yL0 = BW_NULL,
+		std::array<float, N_CHANNELS> * BW_RESTRICT yR0 = BW_NULL);
+# endif
 
 	void process(
 		const float * const * xL,
@@ -1260,14 +1325,14 @@ public:
 		float * const *       yR,
 		size_t                nSamples);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<const float *, N_CHANNELS> xL,
 		std::array<const float *, N_CHANNELS> xR,
 		std::array<float *, N_CHANNELS>       yL,
 		std::array<float *, N_CHANNELS>       yR,
 		size_t                                nSamples);
-#endif
+# endif
 
 	void setPredelay(
 		float value);
@@ -1297,6 +1362,7 @@ private:
 	bw_reverb_coeffs		coeffs;
 	bw_reverb_state			states[N_CHANNELS];
 	bw_reverb_state * BW_RESTRICT	statesP[N_CHANNELS];
+	bool				memAllocated;
 	void * BW_RESTRICT		mem;
 };
 
@@ -1305,24 +1371,43 @@ inline Reverb<N_CHANNELS>::Reverb() {
 	bw_reverb_init(&coeffs);
 	for (size_t i = 0; i < N_CHANNELS; i++)
 		statesP[i] = states + i;
-	mem = nullptr;
+	memAllocated = false;
+	mem = BW_NULL;
 }
 
 template<size_t N_CHANNELS>
 inline Reverb<N_CHANNELS>::~Reverb() {
-	if (mem != nullptr)
+	if (memAllocated)
 		operator delete(mem);
 }
 
 template<size_t N_CHANNELS>
 inline void Reverb<N_CHANNELS>::setSampleRate(
-		float sampleRate) {
+		float                sampleRate,
+		size_t * BW_RESTRICT memReq) {
 	bw_reverb_set_sample_rate(&coeffs, sampleRate);
 	size_t req = bw_reverb_mem_req(&coeffs);
-	if (mem != nullptr)
+	if (memAllocated) {
 		operator delete(mem);
-	mem = operator new(req * N_CHANNELS);
+		memAllocated = false;
+	}
+	if (memReq != BW_NULL) {
+		*memReq = req * N_CHANNELS;
+	} else {
+		mem = operator new(req * N_CHANNELS);
+		memAllocated = true;
+		void *m = mem;
+		for (size_t i = 0; i < N_CHANNELS; i++, m = static_cast<char *>(m) + req)
+			bw_reverb_mem_set(&coeffs, states + i, m);
+	}
+}
+
+template<size_t N_CHANNELS>
+inline void Reverb<N_CHANNELS>::memSet(
+		void * BW_RESTRICT mem) {
+	this->mem = mem;
 	void *m = mem;
+	size_t req = bw_reverb_mem_req(&coeffs);
 	for (size_t i = 0; i < N_CHANNELS; i++, m = static_cast<char *>(m) + req)
 		bw_reverb_mem_set(&coeffs, states + i, m);
 }
@@ -1334,8 +1419,8 @@ inline void Reverb<N_CHANNELS>::reset(
 		float * BW_RESTRICT yL0,
 		float * BW_RESTRICT yR0) {
 	bw_reverb_reset_coeffs(&coeffs);
-	if (yL0 != nullptr) {
-		if (yR0 != nullptr) {
+	if (yL0 != BW_NULL) {
+		if (yR0 != BW_NULL) {
 			for (size_t i = 0; i < N_CHANNELS; i++)
 				bw_reverb_reset_state(&coeffs, states + i, xL0, xR0, yL0 + i, yR0 + i);
 		} else {
@@ -1344,7 +1429,7 @@ inline void Reverb<N_CHANNELS>::reset(
 				bw_reverb_reset_state(&coeffs, states + i, xL0, xR0, yL0 + i, &yr);
 		}
 	} else {
-		if (yR0 != nullptr) {
+		if (yR0 != BW_NULL) {
 			float yl;
 			for (size_t i = 0; i < N_CHANNELS; i++)
 				bw_reverb_reset_state(&coeffs, states + i, xL0, xR0, &yl, yR0 + i);
@@ -1356,16 +1441,16 @@ inline void Reverb<N_CHANNELS>::reset(
 	}
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void Reverb<N_CHANNELS>::reset(
 		float                                       xL0,
 		float                                       xR0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yL0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yR0) {
-	reset(xL0, xR0, yL0 != nullptr ? yL0->data() : nullptr, yR0 != nullptr ? yR0->data() : nullptr);
+	reset(xL0, xR0, yL0 != BW_NULL ? yL0->data() : BW_NULL, yR0 != BW_NULL ? yR0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void Reverb<N_CHANNELS>::reset(
@@ -1377,16 +1462,16 @@ inline void Reverb<N_CHANNELS>::reset(
 	bw_reverb_reset_state_multi(&coeffs, statesP, xL0, xR0, yL0, yR0, N_CHANNELS);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void Reverb<N_CHANNELS>::reset(
 		std::array<float, N_CHANNELS>               xL0,
 		std::array<float, N_CHANNELS>               xR0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yL0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT yR0) {
-	reset(xL0.data(), xR0.data(), yL0 != nullptr ? yL0->data() : nullptr, yR0 != nullptr ? yR0->data() : nullptr);
+	reset(xL0.data(), xR0.data(), yL0 != BW_NULL ? yL0->data() : BW_NULL, yR0 != BW_NULL ? yR0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void Reverb<N_CHANNELS>::process(
@@ -1398,7 +1483,7 @@ inline void Reverb<N_CHANNELS>::process(
 	bw_reverb_process_multi(&coeffs, statesP, xL, xR, yL, yR, N_CHANNELS, nSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void Reverb<N_CHANNELS>::process(
 		std::array<const float *, N_CHANNELS> xL,
@@ -1408,7 +1493,7 @@ inline void Reverb<N_CHANNELS>::process(
 		size_t                                nSamples) {
 	process(xL.data(), xR.data(), yL.data(), yR.data(), nSamples);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void Reverb<N_CHANNELS>::setPredelay(

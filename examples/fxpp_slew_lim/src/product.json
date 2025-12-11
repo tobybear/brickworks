@@ -1,8 +1,6 @@
 {
 	"product": {
 		"name":	"Brickworks slew-rate limiter example (C++)",
-		"version": "1.1.0",
-		"buildVersion": "1",
 		"bundleName": "bw_example_fxpp_slew_lim",
 		"buses": [
 			{
@@ -10,20 +8,23 @@
 				"direction": "input",
 				"channels": "mono",
 				"name": "Input",
-				"shortName": "Input"
+				"shortName": "Input",
+				"id": "input"
 			},
 			{
 				"type": "audio",
 				"direction": "output",
 				"channels": "mono",
 				"name": "Output",
-				"shortName": "Output"
+				"shortName": "Output",
+				"id": "output"
 			}
 		],
 		"parameters": [
 			{
 				"name": "Maximumm rate",
 				"shortName": "Max rate",
+				"id": "max_rate",
 				"direction": "input",
 				"defaultValue": 10000.0,
 				"minimum": 1.0,

@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2023, 2024 Orastron Srl unipersonale
+ * Copyright (C) 2023-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 #include <bw_pan.h>
 #include <bw_ppm.h>
 
-typedef struct plugin {
+typedef struct {
 	bw_pan_coeffs	pan_coeffs;
 	bw_ppm_coeffs	ppm_coeffs;
 	bw_ppm_state	ppm_l_state;
@@ -67,15 +67,7 @@ static void plugin_set_parameter(plugin *instance, size_t index, float value) {
 }
 
 static float plugin_get_parameter(plugin *instance, size_t index) {
-	float v = 0.f;
-	switch (index) {
-	case 1:
-		v = bw_ppm_get_y_z1(&instance->ppm_l_state);
-		break;
-	case 2:
-		v = bw_ppm_get_y_z1(&instance->ppm_r_state);
-		break;
-	}
+	float v = bw_ppm_get_y_z1(index == plugin_parameter_l_level ? &instance->ppm_l_state : &instance->ppm_r_state);
 	return bw_clipf(v, -60.f, 0.f);
 }
 

@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2022-2024 Orastron Srl unipersonale
+ * Copyright (C) 2022-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "common.h"
 #include <bw_mm2.h>
 
-typedef struct plugin {
+typedef struct {
 	bw_mm2_coeffs	mm2_coeffs;
 	bw_mm2_state	mm2_state;
 } plugin;
@@ -56,22 +56,22 @@ static void plugin_reset(plugin *instance) {
 
 static void plugin_set_parameter(plugin *instance, size_t index, float value) {
 	switch (index) {
-	case 0:
+	case plugin_parameter_cutoff:
 		bw_mm2_set_cutoff(&instance->mm2_coeffs, value);
 		break;
-	case 1:
+	case plugin_parameter_q:
 		bw_mm2_set_Q(&instance->mm2_coeffs, value);
 		break;
-	case 2:
+	case plugin_parameter_in:
 		bw_mm2_set_coeff_x(&instance->mm2_coeffs, value);
 		break;
-	case 3:
+	case plugin_parameter_lp:
 		bw_mm2_set_coeff_lp(&instance->mm2_coeffs, value);
 		break;
-	case 4:
+	case plugin_parameter_bp:
 		bw_mm2_set_coeff_bp(&instance->mm2_coeffs, value);
 		break;
-	case 5:
+	case plugin_parameter_hp:
 		bw_mm2_set_coeff_hp(&instance->mm2_coeffs, value);
 		break;
 	}

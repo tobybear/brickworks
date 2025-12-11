@@ -1,8 +1,6 @@
 {
 	"product": {
 		"name":	"Brickworks wah example (C++)",
-		"version": "1.1.0",
-		"buildVersion": "1",
 		"bundleName": "bw_example_fxpp_wah",
 		"buses": [
 			{
@@ -10,20 +8,23 @@
 				"direction": "input",
 				"channels": "mono",
 				"name": "Input",
-				"shortName": "Input"
+				"shortName": "Input",
+				"id": "input"
 			},
 			{
 				"type": "audio",
 				"direction": "output",
 				"channels": "mono",
 				"name": "Output",
-				"shortName": "Output"
+				"shortName": "Output",
+				"id": "output"
 			}
 		],
 		"parameters": [
 			{
 				"name": "Wah",
 				"shortName": "Wah",
+				"id": "wah",
 				"direction": "input",
 				"defaultValue": 50.0,
 				"minimum": 0.0,

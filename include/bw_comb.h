@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2023, 2024 Orastron Srl unipersonale
+ * Copyright (C) 2023-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.1.1 }}}
+ *  version {{{ 1.3.0 }}}
  *  requires {{{
  *    bw_buf bw_common bw_delay bw_gain bw_math bw_one_pole
  *  }}}
@@ -37,11 +37,29 @@
  *  }}}
  *  changelog {{{
  *    <ul>
- *      <li>Version <strong>1.1.1</strong>:
+ *      <li>Version <strong>1.3.0</strong>:
  *        <ul>
- *          <li>Added debugging check in <code>bw_comb_process_multi()</code> to
- *              ensure that buffers used for both input and output appear at the
- *              same channel indices.</li>
+ *          <li>Added <code>memReq</code>/<code>memSet</code> to C++ API.</li>
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *          <li>Updated dependencies.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.1</strong>:
+ *        <ul>
+ *          <li>Now using <code>BW_NULL</code> in the C++ API and
+ *              implementation.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *          <li>Added debugging checks from <code>bw_comb_process()</code> to
+ *              <code>bw_comb_process_multi()</code>.</li>
+ *          <li>Added debugging checks in <code>bw_comb_process_multi()</code>
+ *              to ensure that buffers used for both input and output appear at
+ *              the same channel indices.</li>
  *        </ul>
  *      </li>
  *      <li>Version <strong>1.1.0</strong>:
@@ -100,11 +118,17 @@
 #ifndef BW_COMB_H
 #define BW_COMB_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
+
+/*** Public API ***/
 
 /*! api {{{
  *    #### bw_comb_coeffs
@@ -342,7 +366,7 @@ static inline char bw_comb_state_is_valid(
  *    than or equal to that of `bw_comb_state`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -351,12 +375,19 @@ static inline char bw_comb_state_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#include <bw_delay.h>
-#include <bw_gain.h>
-#include <bw_one_pole.h>
-#include <bw_math.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_delay.h"
+# include "bw_gain.h"
+# include "bw_one_pole.h"
+# include "bw_math.h"
+#else
+# include <bw_delay.h>
+# include <bw_gain.h>
+# include <bw_one_pole.h>
+# include <bw_math.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -715,6 +746,11 @@ static inline void bw_comb_process_multi(
 	BW_ASSERT_DEEP(coeffs->state >= bw_comb_coeffs_state_reset_coeffs);
 	BW_ASSERT(state != BW_NULL);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(state[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_comb_state_is_valid(coeffs, state[i]));
+		BW_ASSERT_DEEP(state->state[i] >= bw_comb_state_state_reset_state);
+	}
 	for (size_t i = 0; i < n_channels; i++)
 		for (size_t j = i + 1; j < n_channels; j++)
 			BW_ASSERT(state[i] != state[j]);
@@ -722,6 +758,11 @@ static inline void bw_comb_process_multi(
 	BW_ASSERT(x != BW_NULL);
 	BW_ASSERT(y != BW_NULL);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(x[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x[i], n_samples));
+		BW_ASSERT(y[i] != BW_NULL);
+	}
 	for (size_t i = 0; i < n_channels; i++)
 		for (size_t j = i + 1; j < n_channels; j++)
 			BW_ASSERT(y[i] != y[j]);
@@ -739,6 +780,13 @@ static inline void bw_comb_process_multi(
 
 	BW_ASSERT_DEEP(bw_comb_coeffs_is_valid(coeffs));
 	BW_ASSERT_DEEP(coeffs->state >= bw_comb_coeffs_state_reset_coeffs);
+#ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT_DEEP(bw_comb_state_is_valid(coeffs, state[i]));
+		BW_ASSERT_DEEP(state[i]->state >= bw_comb_state_state_reset_state);
+		BW_ASSERT_DEEP(bw_has_only_finite(y[i], n_samples));
+	}
+#endif
 }
 
 static inline void bw_comb_set_delay_ff(
@@ -880,12 +928,15 @@ static inline char bw_comb_state_is_valid(
 	return bw_delay_state_is_valid(coeffs ? &coeffs->delay_coeffs : BW_NULL, &state->delay_state);
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -894,7 +945,7 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::Comb
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class Comb {
 public:
 	Comb(
@@ -903,39 +954,43 @@ public:
 	~Comb();
 
 	void setSampleRate(
-		float sampleRate);
+		float                sampleRate,
+		size_t * BW_RESTRICT memReq = BW_NULL);
+
+	void memSet(
+		void * BW_RESTRICT mem);
 
 	void reset(
 		float               x0 = 0.f,
-		float * BW_RESTRICT y0 = nullptr);
+		float * BW_RESTRICT y0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0);
-#endif
+# endif
 
 	void reset(
 		const float * x0,
-		float *       y0 = nullptr);
+		float *       y0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		std::array<float, N_CHANNELS>               x0,
-		std::array<float, N_CHANNELS> * BW_RESTRICT y0 = nullptr);
-#endif
+		std::array<float, N_CHANNELS> * BW_RESTRICT y0 = BW_NULL);
+# endif
 
 	void process(
 		const float * const * x,
 		float * const *       y,
 		size_t                nSamples);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<const float *, N_CHANNELS> x,
 		std::array<float *, N_CHANNELS>       y,
 		size_t                                nSamples);
-#endif
+# endif
 
 	void setDelayFF(
 		float value);
@@ -965,6 +1020,7 @@ private:
 	bw_comb_coeffs			coeffs;
 	bw_comb_state			states[N_CHANNELS];
 	bw_comb_state * BW_RESTRICT	statesP[N_CHANNELS];
+	bool				memAllocated;
 	void * BW_RESTRICT		mem;
 };
 
@@ -974,24 +1030,43 @@ inline Comb<N_CHANNELS>::Comb(
 	bw_comb_init(&coeffs, maxDelay);
 	for (size_t i = 0; i < N_CHANNELS; i++)
 		statesP[i] = states + i;
-	mem = nullptr;
+	memAllocated = false;
+	mem = BW_NULL;
 }
 
 template<size_t N_CHANNELS>
 inline Comb<N_CHANNELS>::~Comb() {
-	if (mem != nullptr)
+	if (memAllocated)
 		operator delete(mem);
 }
 
 template<size_t N_CHANNELS>
 inline void Comb<N_CHANNELS>::setSampleRate(
-		float sampleRate) {
+		float                sampleRate,
+		size_t * BW_RESTRICT memReq) {
 	bw_comb_set_sample_rate(&coeffs, sampleRate);
 	size_t req = bw_comb_mem_req(&coeffs);
-	if (mem != nullptr)
+	if (memAllocated) {
 		operator delete(mem);
-	mem = operator new(req * N_CHANNELS);
+		memAllocated = false;
+	}
+	if (memReq != BW_NULL) {
+		*memReq = req * N_CHANNELS;
+	} else {
+		mem = operator new(req * N_CHANNELS);
+		memAllocated = true;
+		void *m = mem;
+		for (size_t i = 0; i < N_CHANNELS; i++, m = static_cast<char *>(m) + req)
+			bw_comb_mem_set(&coeffs, states + i, m);
+	}
+}
+
+template<size_t N_CHANNELS>
+inline void Comb<N_CHANNELS>::memSet(
+		void * BW_RESTRICT mem) {
+	this->mem = mem;
 	void *m = mem;
+	size_t req = bw_comb_mem_req(&coeffs);
 	for (size_t i = 0; i < N_CHANNELS; i++, m = static_cast<char *>(m) + req)
 		bw_comb_mem_set(&coeffs, states + i, m);
 }
@@ -1001,7 +1076,7 @@ inline void Comb<N_CHANNELS>::reset(
 		float               x0,
 		float * BW_RESTRICT y0) {
 	bw_comb_reset_coeffs(&coeffs);
-	if (y0 != nullptr)
+	if (y0 != BW_NULL)
 		for (size_t i = 0; i < N_CHANNELS; i++)
 			y0[i] = bw_comb_reset_state(&coeffs, states + i, x0);
 	else
@@ -1009,14 +1084,14 @@ inline void Comb<N_CHANNELS>::reset(
 			bw_comb_reset_state(&coeffs, states + i, x0);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void Comb<N_CHANNELS>::reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0) {
-	reset(x0, y0 != nullptr ? y0->data() : nullptr);
+	reset(x0, y0 != BW_NULL ? y0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void Comb<N_CHANNELS>::reset(
@@ -1026,14 +1101,14 @@ inline void Comb<N_CHANNELS>::reset(
 	bw_comb_reset_state_multi(&coeffs, statesP, x0, y0, N_CHANNELS);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void Comb<N_CHANNELS>::reset(
 		std::array<float, N_CHANNELS>               x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0) {
-	reset(x0.data(), y0 != nullptr ? y0->data() : nullptr);
+	reset(x0.data(), y0 != BW_NULL ? y0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void Comb<N_CHANNELS>::process(
@@ -1043,7 +1118,7 @@ inline void Comb<N_CHANNELS>::process(
 	bw_comb_process_multi(&coeffs, statesP, x, y, N_CHANNELS, nSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void Comb<N_CHANNELS>::process(
 		std::array<const float *, N_CHANNELS> x,
@@ -1051,7 +1126,7 @@ inline void Comb<N_CHANNELS>::process(
 		size_t                                nSamples) {
 	process(x.data(), y.data(), nSamples);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void Comb<N_CHANNELS>::setDelayFF(

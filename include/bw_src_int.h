@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2023, 2024 Orastron Srl unipersonale
+ * Copyright (C) 2023-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.1.0 }}}
+ *  version {{{ 1.2.2 }}}
  *  requires {{{ bw_common bw_math }}}
  *  description {{{
  *    Integer-ratio IIR sample rate converter.
@@ -28,11 +28,31 @@
  *    The multi-rate filtering approach was inspired by
  *
  *    M. Holters and J. D. Parker, "A Combined Model for a Bucket Brigade Device
- *    and its Input and Output Filters", 21st Intl. Conf. Digital Audio Effects
- *    (DAFx-18), Aveiro, Portugal, September 2018.
+ *    and its Input and Output Filters", Proc. 21st Intl. Conf. Digital Audio
+ *    Effects (DAFx-18), Aveiro, Portugal, September 2018.
  *  }}}
  *  changelog {{{
  *    <ul>
+ *      <li>Version <strong>1.2.2</strong>:
+ *        <ul>
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *          <li>Fixed typo in module description.</li>
+ *          <li>Updated dependencies.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.1</strong>:
+ *        <ul>
+ *          <li>Now using <code>BW_NULL</code> in the C++ API and
+ *              implementation.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *        </ul>
+ *      </li>
  *      <li>Version <strong>1.1.0</strong>:
  *        <ul>
  *          <li>Now using <code>BW_NULL</code> and
@@ -85,11 +105,17 @@
 #ifndef BW_SRC_INT_H
 #define BW_SRC_INT_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
+
+/*** Public API ***/
 
 /*! api {{{
  *    #### bw_src_int_coeffs
@@ -221,7 +247,7 @@ static inline char bw_src_int_state_is_valid(
  *    than or equal to that of `bw_src_int_state`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -230,9 +256,13 @@ static inline char bw_src_int_state_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#include <bw_math.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_math.h"
+#else
+# include <bw_math.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -267,7 +297,7 @@ struct bw_src_int_state {
 
 static inline void bw_src_int_init(
 		bw_src_int_coeffs * BW_RESTRICT coeffs,
-		int ratio) {
+		int                             ratio) {
 	BW_ASSERT(coeffs != BW_NULL);
 	BW_ASSERT(ratio < -1 || ratio > 1);
 
@@ -496,12 +526,15 @@ static inline char bw_src_int_state_is_valid(
 		&& bw_is_finite(state->z4);
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -510,7 +543,7 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::SRCInt
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class SRCInt {
 public:
 	SRCInt(
@@ -518,37 +551,37 @@ public:
 
 	void reset(
 		float               x0 = 0.f,
-		float * BW_RESTRICT y0 = nullptr);
+		float * BW_RESTRICT y0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0);
-#endif
+# endif
 
 	void reset(
 		const float * x0,
-		float *       y0 = nullptr);
+		float *       y0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		std::array<float, N_CHANNELS>               x0,
-		std::array<float, N_CHANNELS> * BW_RESTRICT y0 = nullptr);
-#endif
+		std::array<float, N_CHANNELS> * BW_RESTRICT y0 = BW_NULL);
+# endif
 
 	void process(
 		const float * BW_RESTRICT const * BW_RESTRICT x,
 		float * const * BW_RESTRICT                   y,
 		size_t                                        nInSamples,
-		size_t * BW_RESTRICT                          nOutSamples = nullptr);
+		size_t * BW_RESTRICT                          nOutSamples = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<const float * BW_RESTRICT, N_CHANNELS> x,
 		std::array<float * BW_RESTRICT, N_CHANNELS>       y,
 		size_t                                            nInSamples,
-		std::array<size_t, N_CHANNELS> * BW_RESTRICT      nOutSamples = nullptr);
-#endif
+		std::array<size_t, N_CHANNELS> * BW_RESTRICT      nOutSamples = BW_NULL);
+# endif
 /*! <<<...
  *  }
  *  ```
@@ -577,7 +610,7 @@ template<size_t N_CHANNELS>
 inline void SRCInt<N_CHANNELS>::reset(
 		float               x0,
 		float * BW_RESTRICT y0) {
-	if (y0 != nullptr)
+	if (y0 != BW_NULL)
 		for (size_t i = 0; i < N_CHANNELS; i++)
 			y0[i] = bw_src_int_reset_state(&coeffs, states + i, x0);
 	else
@@ -585,14 +618,14 @@ inline void SRCInt<N_CHANNELS>::reset(
 			bw_src_int_reset_state(&coeffs, states + i, x0);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void SRCInt<N_CHANNELS>::reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0) {
-	reset(x0, y0 != nullptr ? y0->data() : nullptr);
+	reset(x0, y0 != BW_NULL ? y0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void SRCInt<N_CHANNELS>::reset(
@@ -601,14 +634,14 @@ inline void SRCInt<N_CHANNELS>::reset(
 	bw_src_int_reset_state_multi(&coeffs, statesP, x0, y0, N_CHANNELS);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void SRCInt<N_CHANNELS>::reset(
 		std::array<float, N_CHANNELS>               x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0) {
-	reset(x0.data(), y0 != nullptr ? y0->data() : nullptr);
+	reset(x0.data(), y0 != BW_NULL ? y0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void SRCInt<N_CHANNELS>::process(
@@ -619,16 +652,16 @@ inline void SRCInt<N_CHANNELS>::process(
 	bw_src_int_process_multi(&coeffs, statesP, x, y, N_CHANNELS, nInSamples, nOutSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void SRCInt<N_CHANNELS>::process(
 		std::array<const float * BW_RESTRICT, N_CHANNELS> x,
 		std::array<float * BW_RESTRICT, N_CHANNELS>       y,
 		size_t                                            nInSamples,
 		std::array<size_t, N_CHANNELS> * BW_RESTRICT      nOutSamples) {
-	process(x.data(), y.data(), nInSamples, nOutSamples ? nOutSamples->data() : nullptr);
+	process(x.data(), y.data(), nInSamples, nOutSamples ? nOutSamples->data() : BW_NULL);
 }
-#endif
+# endif
 
 }
 #endif

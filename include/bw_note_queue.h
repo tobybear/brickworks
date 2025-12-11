@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ utility }}}
- *  version {{{ 1.0.1 }}}
+ *  version {{{ 1.1.0 }}}
  *  requires {{{ bw_common }}}
  *  description {{{
  *    Simple data structure that helps keeping track of note on/off events and
@@ -30,6 +30,19 @@
  *  }}}
  *  changelog {{{
  *    <ul>
+ *      <li>Version <strong>1.1.0</strong>:
+ *        <ul>
+ *          <li>Added <code>bw_note_queue_all_notes_off()</code>.</li>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *          <li>Fixed bug in <code>bw_note_queue_is_valid()</code> which
+ *              erroneously marked queue with 128 pressed notes or 128 events as
+ *              invalid.</li>
+ *          <li>Fixed typo in the documentation of
+ *              <code>bw_note_queue_reset()</code>.</li>
+ *        </ul>
+ *      </li>
  *      <li>Version <strong>1.0.1</strong>:
  *        <ul>
  *          <li>Now using <code>BW_NULL</code>.</li>
@@ -66,9 +79,13 @@
 #ifndef BW_NOTE_QUEUE_H
 #define BW_NOTE_QUEUE_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -123,7 +140,7 @@ typedef struct {
 static inline void bw_note_queue_reset(
 	bw_note_queue * BW_RESTRICT queue);
 /*! <<<```
- *    Clear both the event queue (no events) and the note statuses (all notes
+ *    Clears both the event queue (no events) and the note statuses (all notes
  *    off, all velocities `0.f`) in `queue`.
  *
  *    #### bw_note_queue_clear()
@@ -149,6 +166,15 @@ static inline void bw_note_queue_add(
  *    If `force_went_off` is set to non-`0`, `went_off` is always set to
  *    non-`0`.
  *
+ *    #### bw_note_queue_all_notes_off()
+ *  ```>>> */
+static inline void bw_note_queue_all_notes_off(
+	bw_note_queue * BW_RESTRICT queue,
+	float                       velocity);
+/*! <<<```
+ *    Turns all notes off in `queue`, adding note off events as needed with the
+ *    given `velocity`.
+ *
  *    #### bw_note_queue_is_valid()
  *  ```>>> */
 static inline char bw_note_queue_is_valid(
@@ -162,7 +188,7 @@ static inline char bw_note_queue_is_valid(
  *    than or equal to that of `bw_note_queue`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -171,7 +197,7 @@ static inline char bw_note_queue_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -230,11 +256,25 @@ static inline void bw_note_queue_add(
 	BW_ASSERT_DEEP(bw_note_queue_is_valid(queue));
 }
 
+static inline void bw_note_queue_all_notes_off(
+		bw_note_queue * BW_RESTRICT queue,
+		float                       velocity) {
+	BW_ASSERT(queue != BW_NULL);
+	BW_ASSERT_DEEP(bw_note_queue_is_valid(queue));
+	BW_ASSERT(bw_is_finite(velocity) && velocity <= 1.f);
+
+	for (unsigned char i = 0; i < 128; i++)
+		if (queue->status[i].pressed)
+			bw_note_queue_add(queue, i, 0, velocity, 0);
+
+	BW_ASSERT_DEEP(bw_note_queue_is_valid(queue));
+}
+
 static inline char bw_note_queue_is_valid(
 		const bw_note_queue * BW_RESTRICT queue) {
 	BW_ASSERT(queue != BW_NULL);
 
-	if (queue->n_events >= 128 || queue->n_pressed >= 128)
+	if (queue->n_events > 128 || queue->n_pressed > 128)
 		return 0;
 
 	for (unsigned char i = 0; i < queue->n_events; i++) {
@@ -260,8 +300,11 @@ static inline char bw_note_queue_is_valid(
 	return cnt == queue->n_pressed;
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
+#endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
 
 /*** Public C++ API ***/
 

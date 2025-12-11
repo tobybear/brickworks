@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2023, 2024 Orastron Srl unipersonale
+ * Copyright (C) 2023-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 #include "common.h"
 #include <bw_ap2.h>
 
-typedef struct plugin {
+typedef struct {
 	bw_ap2_coeffs	ap2_coeffs;
 	bw_ap2_state	ap2_state;
 } plugin;
@@ -56,10 +56,10 @@ static void plugin_reset(plugin *instance) {
 
 static void plugin_set_parameter(plugin *instance, size_t index, float value) {
 	switch (index) {
-	case 0:
+	case plugin_parameter_cutoff:
 		bw_ap2_set_cutoff(&instance->ap2_coeffs, value);
 		break;
-	case 1:
+	case plugin_parameter_q:
 		bw_ap2_set_Q(&instance->ap2_coeffs, value);
 		break;
 	}

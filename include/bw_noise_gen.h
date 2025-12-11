@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2022-2024 Orastron Srl unipersonale
+ * Copyright (C) 2022-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.1.0 }}}
+ *  version {{{ 1.2.1 }}}
  *  requires {{{ bw_common bw_math bw_rand }}}
  *  description {{{
  *    Generator of white noise with uniform distribution.
@@ -31,6 +31,19 @@
  *  }}}
  *  changelog {{{
  *    <ul>
+ *      <li>Version <strong>1.2.1</strong>:
+ *        <ul>
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *          <li>Updated dependencies.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *        </ul>
+ *      </li>
  *      <li>Version <strong>1.1.0</strong>:
  *        <ul>
  *          <li>Now using <code>BW_NULL</code> and
@@ -82,11 +95,17 @@
 #ifndef BW_NOISE_GEN_H
 #define BW_NOISE_GEN_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
+
+/*** Public API ***/
 
 /*! api {{{
  *    #### bw_noise_gen_coeffs
@@ -209,7 +228,7 @@ static inline char bw_noise_gen_coeffs_is_valid(
  *    than or equal to that of `bw_noise_gen_coeffs`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -218,10 +237,15 @@ static inline char bw_noise_gen_coeffs_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#include <bw_math.h>
-#include <bw_rand.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_math.h"
+# include "bw_rand.h"
+#else
+# include <bw_math.h>
+# include <bw_rand.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -432,12 +456,15 @@ static inline char bw_noise_gen_coeffs_is_valid(
 	return 1;
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -446,7 +473,7 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::NoiseGen
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class NoiseGen {
 public:
 	NoiseGen(
@@ -461,11 +488,11 @@ public:
 		float * BW_RESTRICT const * BW_RESTRICT y,
 		size_t                                  nSamples);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<float * BW_RESTRICT, N_CHANNELS> y,
 		size_t                                      nSamples);
-#endif
+# endif
 
 	void setSampleRateScaling(
 		bool value);
@@ -509,14 +536,14 @@ inline void NoiseGen<N_CHANNELS>::process(
 	bw_noise_gen_process_multi(&coeffs, y, N_CHANNELS, nSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void NoiseGen<N_CHANNELS>::process(
 		std::array<float * BW_RESTRICT, N_CHANNELS> y,
 		size_t                                      nSamples) {
 	process(y.data(), nSamples);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void NoiseGen<N_CHANNELS>::setSampleRateScaling(

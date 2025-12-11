@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2021-2024 Orastron Srl unipersonale
+ * Copyright (C) 2021-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ utility }}}
- *  version {{{ 1.0.1 }}}
+ *  version {{{ 1.2.0 }}}
  *  requires {{{ bw_common }}}
  *  description {{{
  *    A collection of mathematical routines that strive to be better suited to
@@ -44,6 +44,27 @@
  *  }}}
  *  changelog {{{
  *    <ul>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added <code>bw_sechf()</code>.</li>
+ *          <li>Added <code>bw_{signfill,min,max,clip}{i,u}{8,16}()</code>.</li>
+ *          <li>Improved precision and performance of
+ *              <code>bw_log_1pexpxf()</code>, and
+ *              <code>bw_log10_1p10xf()</code>.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.1.0</strong>:
+ *        <ul>
+ *          <li>Added <code>bw_signfilli64()</code>, <code>bw_mini64()</code>,
+ *              <code>bw_maxi64()</code>, <code>bw_clipi64()</code>,
+ *              <code>bw_minu64()</code>, <code>bw_maxu64()</code>,
+ *              <code>bw_clipu64()</code>, <code>bw_log2_1p2xf()</code>,
+ *              <code>bw_log_1pexpxf()</code>, and
+ *              <code>bw_log10_1p10xf()</code>.</li>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code> and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *        </ul>
+ *      </li>
  *      <li>Version <strong>1.0.1</strong>:
  *        <ul>
  *          <li>Now using <code>BW_NULL</code>.</li>
@@ -121,15 +142,137 @@
 #ifndef BW_MATH_H
 #define BW_MATH_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
 /*** Public API ***/
 
 /*! api {{{
+ *    #### bw_signfilli8()
+ *  ```>>> */
+static inline int8_t bw_signfilli8(
+	int8_t x);
+/*! <<<```
+ *    Returns `~0` if `x` is negative, `0` otherwise.
+ *
+ *    #### bw_mini8()
+ *  ```>>> */
+static inline int8_t bw_mini8(
+	int8_t a,
+	int8_t b);
+/*! <<<```
+ *    Returns the minimum of `a` and `b`.
+ *
+ *    #### bw_maxi8()
+ *  ```>>> */
+static inline int8_t bw_maxi8(
+	int8_t a,
+	int8_t b);
+/*! <<<```
+ *    Returns the maximum of `a` and `b`.
+ *
+ *    #### bw_clipi8()
+ *  ```>>> */
+static inline int8_t bw_clipi8(
+	int8_t x,
+	int8_t m,
+	int8_t M);
+/*! <<<```
+ *    Returns `x` unless it is smaller than `m`, in which case it returns `m`,
+ *    or bigger than `M`, in which case it returns `M`.
+ *
+ *    #### bw_minu8()
+ *  ```>>> */
+static inline uint8_t bw_minu8(
+	uint8_t a,
+	uint8_t b);
+/*! <<<```
+ *    Returns the minimum of `a` and `b`.
+ *
+ *    #### bw_maxu8()
+ *  ```>>> */
+static inline uint8_t bw_maxu8(
+	uint8_t a,
+	uint8_t b);
+/*! <<<```
+ *    Returns the maximum of `a` and `b`.
+ *
+ *    #### bw_clipu8()
+ *  ```>>> */
+static inline uint8_t bw_clipu8(
+	uint8_t x,
+	uint8_t m,
+	uint8_t M);
+/*! <<<```
+ *    Returns `x` unless it is smaller than `m`, in which case it returns `m`,
+ *    or bigger than `M`, in which case it returns `M`.
+ *
+ *    #### bw_signfilli16()
+ *  ```>>> */
+static inline int16_t bw_signfilli16(
+	int16_t x);
+/*! <<<```
+ *    Returns `~0` if `x` is negative, `0` otherwise.
+ *
+ *    #### bw_mini16()
+ *  ```>>> */
+static inline int16_t bw_mini16(
+	int16_t a,
+	int16_t b);
+/*! <<<```
+ *    Returns the minimum of `a` and `b`.
+ *
+ *    #### bw_maxi16()
+ *  ```>>> */
+static inline int16_t bw_maxi16(
+	int16_t a,
+	int16_t b);
+/*! <<<```
+ *    Returns the maximum of `a` and `b`.
+ *
+ *    #### bw_clipi16()
+ *  ```>>> */
+static inline int16_t bw_clipi16(
+	int16_t x,
+	int16_t m,
+	int16_t M);
+/*! <<<```
+ *    Returns `x` unless it is smaller than `m`, in which case it returns `m`,
+ *    or bigger than `M`, in which case it returns `M`.
+ *
+ *    #### bw_minu16()
+ *  ```>>> */
+static inline uint16_t bw_minu16(
+	uint16_t a,
+	uint16_t b);
+/*! <<<```
+ *    Returns the minimum of `a` and `b`.
+ *
+ *    #### bw_maxu16()
+ *  ```>>> */
+static inline uint16_t bw_maxu16(
+	uint16_t a,
+	uint16_t b);
+/*! <<<```
+ *    Returns the maximum of `a` and `b`.
+ *
+ *    #### bw_clipu16()
+ *  ```>>> */
+static inline uint16_t bw_clipu16(
+	uint16_t x,
+	uint16_t m,
+	uint16_t M);
+/*! <<<```
+ *    Returns `x` unless it is smaller than `m`, in which case it returns `m`,
+ *    or bigger than `M`, in which case it returns `M`.
+ *
  *    #### bw_signfilli32()
  *  ```>>> */
 static inline int32_t bw_signfilli32(
@@ -185,6 +328,65 @@ static inline uint32_t bw_clipu32(
 	uint32_t x,
 	uint32_t m,
 	uint32_t M);
+/*! <<<```
+ *    Returns `x` unless it is smaller than `m`, in which case it returns `m`,
+ *    or bigger than `M`, in which case it returns `M`.
+ *
+ *    #### bw_signfilli64()
+ *  ```>>> */
+static inline int64_t bw_signfilli64(
+	int64_t x);
+/*! <<<```
+ *    Returns `~0` if `x` is negative, `0` otherwise.
+ *
+ *    #### bw_mini64()
+ *  ```>>> */
+static inline int64_t bw_mini64(
+	int64_t a,
+	int64_t b);
+/*! <<<```
+ *    Returns the minimum of `a` and `b`.
+ *
+ *    #### bw_maxi64()
+ *  ```>>> */
+static inline int64_t bw_maxi64(
+	int64_t a,
+	int64_t b);
+/*! <<<```
+ *    Returns the maximum of `a` and `b`.
+ *
+ *    #### bw_clipi64()
+ *  ```>>> */
+static inline int64_t bw_clipi64(
+	int64_t x,
+	int64_t m,
+	int64_t M);
+/*! <<<```
+ *    Returns `x` unless it is smaller than `m`, in which case it returns `m`,
+ *    or bigger than `M`, in which case it returns `M`.
+ *
+ *    #### bw_minu32()
+ *  ```>>> */
+static inline uint64_t bw_minu64(
+	uint64_t a,
+	uint64_t b);
+/*! <<<```
+ *    Returns the minimum of `a` and `b`.
+ *
+ *    #### bw_maxu64()
+ *  ```>>> */
+static inline uint64_t bw_maxu64(
+	uint64_t a,
+	uint64_t b);
+/*! <<<```
+ *    Returns the maximum of `a` and `b`.
+ *
+ *    #### bw_clipu64()
+ *  ```>>> */
+static inline uint64_t bw_clipu64(
+	uint64_t x,
+	uint64_t m,
+	uint64_t M);
 /*! <<<```
  *    Returns `x` unless it is smaller than `m`, in which case it returns `m`,
  *    or bigger than `M`, in which case it returns `M`.
@@ -461,6 +663,33 @@ static inline float bw_pow10f(
  *
  *    Relative error < 0.062%.
  *
+ *    #### bw_log2_1p2xf()
+ *  ```>>> */
+static inline float bw_log2_1p2xf(
+	float x);
+/*! <<<```
+ *    Returns an approximation of `log2(1+2^x)`.
+ *
+ *    Absolute error < 0.006.
+ *
+ *    #### bw_log_1pexpxf()
+ *  ```>>> */
+static inline float bw_log_1pexpxf(
+	float x);
+/*! <<<```
+ *    Returns an approximation of `log(1+exp(x))`.
+ *
+ *    Absolute error < 0.004.
+ *
+ *    #### bw_log10_1p10xf()
+ *  ```>>> */
+static inline float bw_log10_1p10xf(
+	float x);
+/*! <<<```
+ *    Returns an approximation of `log10(1+10^x)`.
+ *
+ *    Absolute error < 0.002.
+ *
  *    #### bw_dB2linf()
  *  ```>>> */
 static inline float bw_dB2linf(
@@ -528,6 +757,15 @@ static inline float bw_coshf(
  *
  *    Relative error < 0.07%.
  *
+ *    #### bw_sechf()
+ *  ```>>> */
+static inline float bw_sechf(
+	float x);
+/*! <<<```
+ *    Returns an approximation of the hyperbolic secant of `x`.
+ *
+ *    Absolute error < 1e-9 or relative error < 0.07%, whatever is worse.
+ *
  *    #### bw_asinhf()
  *  ```>>> */
 static inline float bw_asinhf(
@@ -546,12 +784,12 @@ static inline float bw_acoshf(
 /*! <<<```
  *    Returns an approximation of the hyperbolic arccosine of `x`.
  *
- *    `x` must be in [1.f, 8.507059173023462e+37f].
+ *    `x` must be in [`1.f`, `8.507059173023462e+37f`].
  *
  *    Absolute error < 0.004 or relative error < 0.8%, whatever is worse.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -560,11 +798,97 @@ static inline float bw_acoshf(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
 // I hope the target architecture and compiler will use conditional ops here
+
+static inline int8_t bw_signfilli8(
+		int8_t x) {
+	return x < 0 ? ~0 : 0;
+}
+
+static inline int8_t bw_mini8(
+		int8_t a,
+		int8_t b) {
+	return a < b ? a : b;
+}
+
+static inline int8_t bw_maxi8(
+		int8_t a,
+		int8_t b) {
+	return a > b ? a : b;
+}
+
+static inline int8_t bw_clipi8(
+		int8_t x,
+		int8_t m,
+		int8_t M) {
+	return x < m ? m : (x > M ? M : x);
+}
+
+static inline uint8_t bw_minu8(
+		uint8_t a,
+		uint8_t b) {
+	return a < b ? a : b;
+}
+
+static inline uint8_t bw_maxu8(
+		uint8_t a,
+		uint8_t b) {
+	return a > b ? a : b;
+}
+
+static inline uint8_t bw_clipu8(
+		uint8_t x,
+		uint8_t m,
+		uint8_t M) {
+	return x < m ? m : (x > M ? M : x);
+}
+
+static inline int16_t bw_signfilli16(
+		int16_t x) {
+	return x < 0 ? ~0 : 0;
+}
+
+static inline int16_t bw_mini16(
+		int16_t a,
+		int16_t b) {
+	return a < b ? a : b;
+}
+
+static inline int16_t bw_maxi16(
+		int16_t a,
+		int16_t b) {
+	return a > b ? a : b;
+}
+
+static inline int16_t bw_clipi16(
+		int16_t x,
+		int16_t m,
+		int16_t M) {
+	return x < m ? m : (x > M ? M : x);
+}
+
+static inline uint16_t bw_minu16(
+		uint16_t a,
+		uint16_t b) {
+	return a < b ? a : b;
+}
+
+static inline uint16_t bw_maxu16(
+		uint16_t a,
+		uint16_t b) {
+	return a > b ? a : b;
+}
+
+static inline uint16_t bw_clipu16(
+		uint16_t x,
+		uint16_t m,
+		uint16_t M) {
+	return x < m ? m : (x > M ? M : x);
+}
 
 static inline int32_t bw_signfilli32(
 		int32_t x) {
@@ -606,6 +930,49 @@ static inline uint32_t bw_clipu32(
 		uint32_t x,
 		uint32_t m,
 		uint32_t M) {
+	return x < m ? m : (x > M ? M : x);
+}
+
+static inline int64_t bw_signfilli64(
+		int64_t x) {
+	return x < 0 ? ~0 : 0;
+}
+
+static inline int64_t bw_mini64(
+		int64_t a,
+		int64_t b) {
+	return a < b ? a : b;
+}
+
+static inline int64_t bw_maxi64(
+		int64_t a,
+		int64_t b) {
+	return a > b ? a : b;
+}
+
+static inline int64_t bw_clipi64(
+		int64_t x,
+		int64_t m,
+		int64_t M) {
+	return x < m ? m : (x > M ? M : x);
+}
+
+static inline uint64_t bw_minu64(
+		uint64_t a,
+		uint64_t b) {
+	return a < b ? a : b;
+}
+
+static inline uint64_t bw_maxu64(
+		uint64_t a,
+		uint64_t b) {
+	return a > b ? a : b;
+}
+
+static inline uint64_t bw_clipu64(
+		uint64_t x,
+		uint64_t m,
+		uint64_t M) {
 	return x < m ? m : (x > M ? M : x);
 }
 
@@ -908,6 +1275,30 @@ static inline float bw_pow10f(
 	return y;
 }
 
+static inline float bw_log2_1p2xf(
+		float x) {
+	BW_ASSERT(!bw_is_nan(x));
+	const float y = x >= 32.f ? x : bw_log2f(1.f + bw_pow2f(x));
+	BW_ASSERT(bw_is_finite(y));
+	return y;
+}
+
+static inline float bw_log_1pexpxf(
+		float x) {
+	BW_ASSERT(!bw_is_nan(x));
+	const float y = x >= 22.18070977791827f ? x : 0.693147180559945f * bw_log2f(1.f + bw_pow2f(1.442695040888963f * x));
+	BW_ASSERT(bw_is_finite(y));
+	return y;
+}
+
+static inline float bw_log10_1p10xf(
+		float x) {
+	BW_ASSERT(!bw_is_nan(x));
+	const float y = x >= 9.632959861247409f ? x : 0.3010299956639811f * bw_log2f(1.f + bw_pow2f(3.321928094887363f * x));
+	BW_ASSERT(bw_is_finite(y));
+	return y;
+}
+
 static inline float bw_dB2linf(
 		float x) {
 	BW_ASSERT(!bw_is_nan(x));
@@ -973,6 +1364,17 @@ static inline float bw_coshf(
 	return y;
 }
 
+static inline float bw_sechf(
+		float x) {
+	BW_ASSERT(!bw_is_nan(x));
+	if (x * x >= 22.f * 22.f)
+	       return 0.f;
+	float y = bw_rcpf(bw_expf(x) + bw_expf(-x));
+	y = y + y;
+	BW_ASSERT(bw_is_finite(y));
+	return y;
+}
+
 static inline float bw_asinhf(
 		float x) {
 	BW_ASSERT(bw_is_finite(x));
@@ -992,7 +1394,7 @@ static inline float bw_acoshf(
 	return y;
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 

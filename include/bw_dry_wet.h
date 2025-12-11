@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2023, 2024 Orastron Srl unipersonale
+ * Copyright (C) 2023-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,21 +20,33 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.2.0 }}}
+ *  version {{{ 1.2.1 }}}
  *  requires {{{ bw_common bw_gain bw_math bw_one_pole }}}
  *  description {{{
  *    Dry/wet mixer.
  *  }}}
  *  changelog {{{
  *    <ul>
+ *      <li>Version <strong>1.2.1</strong>:
+ *        <ul>
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *          <li>Updated dependencies.</li>
+ *        </ul>
+ *      </li>
  *      <li>Version <strong>1.2.0</strong>:
  *        <ul>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *          <li>Added debugging checks from <code>bw_dry_wet_process()</code> to
+ *              <code>bw_dry_wet_process_multi()</code>.</li>
  *          <li>Added <code>bw_dry_wet_get_wet()</code> and
  *              <code>bw_dry_wet_get_wet_cur()</code>, and corresponding C++
  *              API.</li>
- *          <li>Added debugging check in <code>bw_dry_wet_process_multi()</code>
- *              to ensure that buffers used for both input and output appear at
- *              the same channel indices.</li>
+ *          <li>Added debugging checks in
+ *              <code>bw_dry_wet_process_multi()</code> to ensure that buffers
+ *              used for both input and output appear at the same channel
+ *              indices.</li>
  *        </ul>
  *      </li>
  *      <li>Version <strong>1.1.0</strong>:
@@ -76,11 +88,17 @@
 #ifndef BW_DRY_WET_H
 #define BW_DRY_WET_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
+
+/*** Public API ***/
 
 /*! api {{{
  *    #### bw_dry_wet_coeffs
@@ -216,7 +234,7 @@ static inline char bw_dry_wet_coeffs_is_valid(
  *    than or equal to that of `bw_dry_wet_coeffs`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -225,9 +243,13 @@ static inline char bw_dry_wet_coeffs_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#include <bw_gain.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_gain.h"
+#else
+# include <bw_gain.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -379,6 +401,13 @@ static inline void bw_dry_wet_process_multi(
 	BW_ASSERT(x_wet != BW_NULL);
 	BW_ASSERT(y != BW_NULL);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(x_dry[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x_dry[i], n_samples));
+		BW_ASSERT(x_wet[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x_wet[i], n_samples));
+		BW_ASSERT(y[i] != BW_NULL);
+	}
 	for (size_t i = 0; i < n_channels; i++)
 		for (size_t j = i + 1; j < n_channels; j++)
 			BW_ASSERT(y[i] != y[j]);
@@ -398,6 +427,10 @@ static inline void bw_dry_wet_process_multi(
 
 	BW_ASSERT_DEEP(bw_dry_wet_coeffs_is_valid(coeffs));
 	BW_ASSERT_DEEP(coeffs->state >= bw_dry_wet_coeffs_state_reset_coeffs);
+#ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++)
+		BW_ASSERT_DEEP(bw_has_only_finite(y[i], n_samples));
+#endif
 }
 
 static inline void bw_dry_wet_set_wet(
@@ -461,12 +494,15 @@ static inline char bw_dry_wet_coeffs_is_valid(
 	return bw_gain_coeffs_is_valid(&coeffs->gain_coeffs);
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -475,7 +511,7 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::DryWet
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class DryWet {
 public:
 	DryWet();
@@ -491,13 +527,13 @@ public:
 		float * const *       y,
 		size_t                nSamples);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<const float *, N_CHANNELS> xDry,
 		std::array<const float *, N_CHANNELS> xWet,
 		std::array<float *, N_CHANNELS>       y,
 		size_t                                nSamples);
-#endif
+# endif
 
 	void setWet(
 		float value);
@@ -547,7 +583,7 @@ inline void DryWet<N_CHANNELS>::process(
 	bw_dry_wet_process_multi(&coeffs, xDry, xWet, y, N_CHANNELS, nSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void DryWet<N_CHANNELS>::process(
 		std::array<const float *, N_CHANNELS> xDry,
@@ -556,7 +592,7 @@ inline void DryWet<N_CHANNELS>::process(
 		size_t                                nSamples) {
 	process(xDry.data(), xWet.data(), y.data(), nSamples);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void DryWet<N_CHANNELS>::setWet(

@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2022-2024 Orastron Srl unipersonale
+ * Copyright (C) 2022-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.1.1 }}}
+ *  version {{{ 1.2.2 }}}
  *  requires {{{ bw_common bw_math }}}
  *  description {{{
  *    One-pole (6 dB/oct) lowpass filter with unitary DC gain, separate attack
@@ -30,9 +30,31 @@
  *  }}}
  *  changelog {{{
  *    <ul>
- *      <li>Version <strong>1.1.1</strong>:
+ *      <li>Version <strong>1.2.2</strong>:
  *        <ul>
- *          <li>Added debugging check in
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *          <li>Updated dependencies.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Verison <strong>1.2.1</strong>:
+ *        <ul>
+ *          <li>Now using <code>BW_NULL</code> in the C++ API and
+ *              implementation.</li>
+ *          <li>Fixed typo in the documentation of
+ *              <code>bw_one_pole_get_sticky_mode()</code>.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added <code>bw_one_pole_get_sticky_thresh()</code> and
+ *              <code>bw_one_pole_get_sticky_mode()</code> and related C++
+ *              API.</li>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *          <li>Added debugging checks from <code>bw_one_pole_process()</code>
+ *              to <code>bw_one_pole_process_multi()</code>.</li>
+ *          <li>Added debugging checks in
  *              <code>bw_one_pole_process_multi()</code> to ensure that buffers
  *              used for both input and output appear at the same channel
  *              indices.</li>
@@ -109,9 +131,13 @@
 #ifndef BW_ONE_POLE_H
 #define BW_ONE_POLE_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -425,6 +451,20 @@ static inline void bw_one_pole_set_sticky_mode(
  *
  *    Default value: `bw_one_pole_sticky_mode_abs`.
  *
+ *    #### bw_one_pole_get_sticky_thresh()
+ *  ```>>> */
+static inline float bw_one_pole_get_sticky_thresh(
+	const bw_one_pole_coeffs * BW_RESTRICT coeffs);
+/*! <<<```
+ *    Returns the current target-reach threshold in `coeffs`.
+ *
+ *    #### bw_one_pole_get_sticky_mode()
+ *  ```>>> */
+static inline bw_one_pole_sticky_mode bw_one_pole_get_sticky_mode(
+	const bw_one_pole_coeffs * BW_RESTRICT coeffs);
+/*! <<<```
+ *    Returns the current distance metric for sticky behavior in `coeffs`.
+ *
  *    #### bw_one_pole_get_y_z1()
  *  ```>>> */
 static inline float bw_one_pole_get_y_z1(
@@ -461,7 +501,7 @@ static inline char bw_one_pole_state_is_valid(
  *    than or equal to that of `bw_one_pole_state`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -470,9 +510,13 @@ static inline char bw_one_pole_state_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#include <bw_math.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_math.h"
+#else
+# include <bw_math.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -903,12 +947,20 @@ static inline void bw_one_pole_process_multi(
 	BW_ASSERT_DEEP(coeffs->state >= bw_one_pole_coeffs_state_reset_coeffs);
 	BW_ASSERT(state != BW_NULL);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(state[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_one_pole_state_is_valid(coeffs, state[i]));
+	}
 	for (size_t i = 0; i < n_channels; i++)
 		for (size_t j = i + 1; j < n_channels; j++)
 			BW_ASSERT(state[i] != state[j]);
 #endif
 	BW_ASSERT(x != BW_NULL);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(x[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x[i], n_samples));
+	}
 	if (y != BW_NULL) {
 		for (size_t i = 0; i < n_channels; i++)
 			for (size_t j = i + 1; j < n_channels; j++)
@@ -1019,6 +1071,12 @@ static inline void bw_one_pole_process_multi(
 
 	BW_ASSERT_DEEP(bw_one_pole_coeffs_is_valid(coeffs));
 	BW_ASSERT_DEEP(coeffs->state >= bw_one_pole_coeffs_state_reset_coeffs);
+#ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT_DEEP(bw_one_pole_state_is_valid(coeffs, state[i]));
+		BW_ASSERT_DEEP(y != BW_NULL && y[i] != BW_NULL ? bw_has_only_finite(y[i], n_samples) : 1);
+	}
+#endif
 }
 
 static inline void bw_one_pole_set_cutoff(
@@ -1153,6 +1211,22 @@ static inline void bw_one_pole_set_sticky_mode(
 	BW_ASSERT_DEEP(coeffs->state >= bw_one_pole_coeffs_state_init);
 }
 
+static inline float bw_one_pole_get_sticky_thresh(
+		const bw_one_pole_coeffs * BW_RESTRICT coeffs) {
+	BW_ASSERT(coeffs != BW_NULL);
+	BW_ASSERT_DEEP(bw_one_pole_coeffs_is_valid(coeffs));
+
+	return coeffs->sticky_thresh;
+}
+
+static inline bw_one_pole_sticky_mode bw_one_pole_get_sticky_mode(
+		const bw_one_pole_coeffs * BW_RESTRICT coeffs) {
+	BW_ASSERT(coeffs != BW_NULL);
+	BW_ASSERT_DEEP(bw_one_pole_coeffs_is_valid(coeffs));
+
+	return coeffs->sticky_mode;
+}
+
 static inline float bw_one_pole_get_y_z1(
 		const bw_one_pole_state * BW_RESTRICT state) {
 	BW_ASSERT(state != BW_NULL);
@@ -1222,12 +1296,15 @@ static inline char bw_one_pole_state_is_valid(
 #undef BW_ONE_POLE_PARAM_CUTOFF_DOWN
 #undef BW_ONE_POLE_PARAM_STICKY_THRESH
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -1236,7 +1313,7 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::OnePole
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class OnePole {
 public:
 	OnePole();
@@ -1246,35 +1323,35 @@ public:
 
 	void reset(
 		float               x0 = 0.f,
-		float * BW_RESTRICT y0 = nullptr);
+		float * BW_RESTRICT y0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0);
-#endif
+# endif
 
 	void reset(
 		const float * x0,
-		float *       y0 = nullptr);
+		float *       y0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		std::array<float, N_CHANNELS>               x0,
-		std::array<float, N_CHANNELS> * BW_RESTRICT y0 = nullptr);
-#endif
+		std::array<float, N_CHANNELS> * BW_RESTRICT y0 = BW_NULL);
+# endif
 
 	void process(
 		const float * const * x,
 		float * const *       y,
 		size_t                nSamples);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<const float *, N_CHANNELS> x,
 		std::array<float *, N_CHANNELS>       y,
 		size_t                                nSamples);
-#endif
+# endif
 
 	void setCutoff(
 		float value);
@@ -1299,6 +1376,10 @@ public:
 
 	void setStickyMode(
 		bw_one_pole_sticky_mode value);
+
+	float getStickyThresh();
+
+	bw_one_pole_sticky_mode getStickyMode();
 
 	float getYZ1(
 		size_t channel);
@@ -1336,7 +1417,7 @@ inline void OnePole<N_CHANNELS>::reset(
 		float               x0,
 		float * BW_RESTRICT y0) {
 	bw_one_pole_reset_coeffs(&coeffs);
-	if (y0 != nullptr)
+	if (y0 != BW_NULL)
 		for (size_t i = 0; i < N_CHANNELS; i++)
 			y0[i] = bw_one_pole_reset_state(&coeffs, states + i, x0);
 	else
@@ -1344,14 +1425,14 @@ inline void OnePole<N_CHANNELS>::reset(
 			bw_one_pole_reset_state(&coeffs, states + i, x0);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void OnePole<N_CHANNELS>::reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0) {
-	reset(x0, y0 != nullptr ? y0->data() : nullptr);
+	reset(x0, y0 != BW_NULL ? y0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void OnePole<N_CHANNELS>::reset(
@@ -1361,14 +1442,14 @@ inline void OnePole<N_CHANNELS>::reset(
 	bw_one_pole_reset_state_multi(&coeffs, statesP, x0, y0, N_CHANNELS);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void OnePole<N_CHANNELS>::reset(
 		std::array<float, N_CHANNELS>               x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0) {
-	reset(x0.data(), y0 != nullptr ? y0->data() : nullptr);
+	reset(x0.data(), y0 != BW_NULL ? y0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void OnePole<N_CHANNELS>::process(
@@ -1378,7 +1459,7 @@ inline void OnePole<N_CHANNELS>::process(
 	bw_one_pole_process_multi(&coeffs, statesP, x, y, N_CHANNELS, nSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void OnePole<N_CHANNELS>::process(
 		std::array<const float *, N_CHANNELS> x,
@@ -1386,7 +1467,7 @@ inline void OnePole<N_CHANNELS>::process(
 		size_t                                nSamples) {
 	process(x.data(), y.data(), nSamples);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void OnePole<N_CHANNELS>::setCutoff(
@@ -1434,6 +1515,16 @@ template<size_t N_CHANNELS>
 inline void OnePole<N_CHANNELS>::setStickyMode(
 		bw_one_pole_sticky_mode value) {
 	bw_one_pole_set_sticky_mode(&coeffs, value);
+}
+
+template<size_t N_CHANNELS>
+inline float OnePole<N_CHANNELS>::getStickyThresh() {
+	return bw_one_pole_get_sticky_thresh(&coeffs);
+}
+
+template<size_t N_CHANNELS>
+inline bw_one_pole_sticky_mode OnePole<N_CHANNELS>::getStickyMode() {
+	return bw_one_pole_get_sticky_mode(&coeffs);
 }
 
 template<size_t N_CHANNELS>

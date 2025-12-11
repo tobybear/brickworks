@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2023, 2024 Orastron Srl unipersonale
+ * Copyright (C) 2023-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,18 +20,30 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.1.1 }}}
+ *  version {{{ 1.2.1 }}}
  *  requires {{{ bw_common bw_gain bw_math bw_one_pole }}}
  *  description {{{
  *    Stereo balance.
  *  }}}
  *  changelog {{{
  *    <ul>
- *      <li>Version <strong>1.1.1</strong>:
+ *      <li>Version <strong>1.2.1</strong>:
  *        <ul>
- *          <li>Added debugging check in <code>bw_balance_process_multi()</code>
- *              to ensure that buffers used for both input and output appear at
- *              the same channel indices.</li>
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *          <li>Updated dependencies.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *          <li>Added debugging checks from <code>bw_balance_process()</code> to
+ *              <code>bw_balance_process_multi()</code>.</li>
+ *          <li>Added debugging checks in
+ *              <code>bw_balance_process_multi()</code> to ensure that buffers
+ *              used for both input and output appear at the same channel
+ *              indices.</li>
  *        </ul>
  *      </li>
  *      <li>Version <strong>1.1.0</strong>:
@@ -81,11 +93,17 @@
 #ifndef BW_BALANCE_H
 #define BW_BALANCE_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
+
+/*** Public API ***/
 
 /*! api {{{
  *    #### bw_balance_coeffs
@@ -200,7 +218,7 @@ static inline char bw_balance_coeffs_is_valid(
  *    than or equal to that of `bw_balance_coeffs`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -209,10 +227,15 @@ static inline char bw_balance_coeffs_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#include <bw_math.h>
-#include <bw_gain.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_math.h"
+# include "bw_gain.h"
+#else
+# include <bw_math.h>
+# include <bw_gain.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -397,6 +420,15 @@ static inline void bw_balance_process_multi(
 	BW_ASSERT(y_r != BW_NULL);
 	BW_ASSERT(y_l != y_r);
 #ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT(x_l[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x_l[i], n_samples));
+		BW_ASSERT(x_r[i] != BW_NULL);
+		BW_ASSERT_DEEP(bw_has_only_finite(x_r[i], n_samples));
+		BW_ASSERT(y_l[i] != BW_NULL);
+		BW_ASSERT(y_r[i] != BW_NULL);
+		BW_ASSERT(y_l[i] != y_r);
+	}
 	for (size_t i = 0; i < n_channels; i++)
 		for (size_t j = i + 1; j < n_channels; j++) {
 			BW_ASSERT(y_l[i] != y_l[j]);
@@ -423,6 +455,12 @@ static inline void bw_balance_process_multi(
 
 	BW_ASSERT_DEEP(bw_balance_coeffs_is_valid(coeffs));
 	BW_ASSERT_DEEP(coeffs->state >= bw_balance_coeffs_state_reset_coeffs);
+#ifndef BW_NO_DEBUG
+	for (size_t i = 0; i < n_channels; i++) {
+		BW_ASSERT_DEEP(bw_has_only_finite(y_l[i], n_samples));
+		BW_ASSERT_DEEP(bw_has_only_finite(y_r[i], n_samples));
+	}
+#endif
 }
 
 static inline void bw_balance_set_balance(
@@ -464,12 +502,15 @@ static inline char bw_balance_coeffs_is_valid(
 	return bw_gain_coeffs_is_valid(&coeffs->l_coeffs) && bw_gain_coeffs_is_valid(&coeffs->r_coeffs);
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -478,7 +519,7 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::Balance
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class Balance {
 public:
 	Balance();
@@ -495,14 +536,14 @@ public:
 		float * const *       yR,
 		size_t                nSamples);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<const float *, N_CHANNELS> xL,
 		std::array<const float *, N_CHANNELS> xR,
 		std::array<float *, N_CHANNELS>       yL,
 		std::array<float *, N_CHANNELS>       yR,
 		size_t                                nSamples);
-#endif
+# endif
 
 	void setBalance(
 		float value);
@@ -546,7 +587,7 @@ inline void Balance<N_CHANNELS>::process(
 	bw_balance_process_multi(&coeffs, xL, xR, yL, yR, N_CHANNELS, nSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void Balance<N_CHANNELS>::process(
 		std::array<const float *, N_CHANNELS> xL,
@@ -556,7 +597,7 @@ inline void Balance<N_CHANNELS>::process(
 		size_t                                nSamples) {
 	process(xL.data(), xR.data(), yL.data(), yR.data(), nSamples);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void Balance<N_CHANNELS>::setBalance(

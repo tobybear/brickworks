@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2022-2024 Orastron Srl unipersonale
+ * Copyright (C) 2022-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
 
 /*!
  *  module_type {{{ dsp }}}
- *  version {{{ 1.1.1 }}}
+ *  version {{{ 1.2.2 }}}
  *  requires {{{ bw_common }}}
  *  description {{{
  *    Post-filter to decolorate oscillator waveshapers when antialiasing is on.
@@ -33,9 +33,23 @@
  *  }}}
  *  changelog {{{
  *    <ul>
- *      <li>Version <strong>1.1.1</strong>:
+ *      <li>Version <strong>1.2.2</strong>:
  *        <ul>
- *          <li>Added debugging check in
+ *          <li>Added default value for <code>N_CHANNELS</code> in C++ API.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.1</strong>:
+ *        <ul>
+ *          <li>Now using <code>BW_NULL</code> in the C++ API and
+ *              implementation.</li>
+ *        </ul>
+ *      </li>
+ *      <li>Version <strong>1.2.0</strong>:
+ *        <ul>
+ *          <li>Added support for <code>BW_INCLUDE_WITH_QUOTES</code>,
+ *              <code>BW_NO_CXX</code>, and
+ *              <code>BW_CXX_NO_EXTERN_C</code>.</li>
+ *          <li>Added debugging checks in
  *              <code>bw_osc_filt_process_multi()</code> to ensure that buffers
  *              used for both input and output appear at the same channel
  *              indices.</li>
@@ -98,11 +112,17 @@
 #ifndef BW_OSC_FILT_H
 #define BW_OSC_FILT_H
 
-#include <bw_common.h>
+#ifdef BW_INCLUDE_WITH_QUOTES
+# include "bw_common.h"
+#else
+# include <bw_common.h>
+#endif
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
+
+/*** Public API ***/
 
 /*! api {{{
  *    #### bw_osc_filt_state
@@ -183,7 +203,7 @@ static inline char bw_osc_filt_state_is_valid(
  *    than or equal to that of `bw_osc_filt_state`.
  *  }}} */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
 #endif
 
@@ -192,7 +212,7 @@ static inline char bw_osc_filt_state_is_valid(
 /* WARNING: This part of the file is not part of the public API. Its content may
  * change at any time in future versions. Please, do not use it directly. */
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -319,12 +339,15 @@ static inline char bw_osc_filt_state_is_valid(
 	return bw_is_finite(state->z1);
 }
 
-#ifdef __cplusplus
+#if !defined(BW_CXX_NO_EXTERN_C) && defined(__cplusplus)
 }
-
-#ifndef BW_CXX_NO_ARRAY
-# include <array>
 #endif
+
+#if !defined(BW_NO_CXX) && defined(__cplusplus)
+
+# ifndef BW_CXX_NO_ARRAY
+#  include <array>
+# endif
 
 namespace Brickworks {
 
@@ -333,42 +356,42 @@ namespace Brickworks {
 /*! api_cpp {{{
  *    ##### Brickworks::OscFilt
  *  ```>>> */
-template<size_t N_CHANNELS>
+template<size_t N_CHANNELS = 1>
 class OscFilt {
 public:
 	OscFilt();
 	
 	void reset(
 		float               x0 = 0.f,
-		float * BW_RESTRICT y0 = nullptr);
+		float * BW_RESTRICT y0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0);
-#endif
+# endif
 
 	void reset(
 		const float * x0,
-		float *       y0 = nullptr);
+		float *       y0 = BW_NULL);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void reset(
 		std::array<float, N_CHANNELS>               x0,
-		std::array<float, N_CHANNELS> * BW_RESTRICT y0 = nullptr);
-#endif
+		std::array<float, N_CHANNELS> * BW_RESTRICT y0 = BW_NULL);
+# endif
 
 	void process(
 		const float * const * x,
 		float * const *       y,
 		size_t                nSamples);
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 	void process(
 		std::array<const float *, N_CHANNELS> x,
 		std::array<float *, N_CHANNELS>       y,
 		size_t                                nSamples);
-#endif
+# endif
 /*! <<<...
  *  }
  *  ```
@@ -394,7 +417,7 @@ template<size_t N_CHANNELS>
 inline void OscFilt<N_CHANNELS>::reset(
 		float               x0,
 		float * BW_RESTRICT y0) {
-	if (y0 != nullptr)
+	if (y0 != BW_NULL)
 		for (size_t i = 0; i < N_CHANNELS; i++)
 			y0[i] = bw_osc_filt_reset_state(states + i, x0);
 	else
@@ -402,14 +425,14 @@ inline void OscFilt<N_CHANNELS>::reset(
 			bw_osc_filt_reset_state(states + i, x0);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void OscFilt<N_CHANNELS>::reset(
 		float                                       x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0) {
-	reset(x0, y0 != nullptr ? y0->data() : nullptr);
+	reset(x0, y0 != BW_NULL ? y0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void OscFilt<N_CHANNELS>::reset(
@@ -418,14 +441,14 @@ inline void OscFilt<N_CHANNELS>::reset(
 	bw_osc_filt_reset_state_multi(statesP, x0, y0, N_CHANNELS);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void OscFilt<N_CHANNELS>::reset(
 		std::array<float, N_CHANNELS>               x0,
 		std::array<float, N_CHANNELS> * BW_RESTRICT y0) {
-	reset(x0.data(), y0 != nullptr ? y0->data() : nullptr);
+	reset(x0.data(), y0 != BW_NULL ? y0->data() : BW_NULL);
 }
-#endif
+# endif
 
 template<size_t N_CHANNELS>
 inline void OscFilt<N_CHANNELS>::process(
@@ -435,7 +458,7 @@ inline void OscFilt<N_CHANNELS>::process(
 	bw_osc_filt_process_multi(statesP, x, y, N_CHANNELS, nSamples);
 }
 
-#ifndef BW_CXX_NO_ARRAY
+# ifndef BW_CXX_NO_ARRAY
 template<size_t N_CHANNELS>
 inline void OscFilt<N_CHANNELS>::process(
 		std::array<const float *, N_CHANNELS> x,
@@ -443,7 +466,7 @@ inline void OscFilt<N_CHANNELS>::process(
 		size_t                                nSamples) {
 	process(x.data(), y.data(), nSamples);
 }
-#endif
+# endif
 
 }
 #endif

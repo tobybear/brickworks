@@ -1,8 +1,6 @@
 {
 	"product": {
 		"name":	"Brickworks overdrive example",
-		"version": "1.1.0",
-		"buildVersion": "1",
 		"bundleName": "bw_example_fx_drive",
 		"buses": [
 			{
@@ -10,20 +8,23 @@
 				"direction": "input",
 				"channels": "mono",
 				"name": "Input",
-				"shortName": "Input"
+				"shortName": "Input",
+				"id": "input"
 			},
 			{
 				"type": "audio",
 				"direction": "output",
 				"channels": "mono",
 				"name": "Output",
-				"shortName": "Output"
+				"shortName": "Output",
+				"id": "output"
 			}
 		],
 		"parameters": [
 			{
 				"name": "Drive",
 				"shortName": "Drive",
+				"id": "drive",
 				"direction": "input",
 				"defaultValue": 0.0,
 				"minimum": 0.0,
@@ -34,6 +35,7 @@
 			{
 				"name": "Tone",
 				"shortName": "Tone",
+				"id": "tone",
 				"direction": "input",
 				"defaultValue": 50.0,
 				"minimum": 0.0,
@@ -44,6 +46,7 @@
 			{
 				"name": "Volume",
 				"shortName": "Volume",
+				"id": "volume",
 				"direction": "input",
 				"defaultValue": 100.0,
 				"minimum": 0.0,

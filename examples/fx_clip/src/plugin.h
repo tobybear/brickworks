@@ -1,7 +1,7 @@
 /*
  * Brickworks
  *
- * Copyright (C) 2022-2024 Orastron Srl unipersonale
+ * Copyright (C) 2022-2025 Orastron Srl unipersonale
  *
  * Brickworks is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 
 #define BUF_SIZE	32
 
-typedef struct plugin {
+typedef struct {
 	bw_clip_coeffs		clip_coeffs;
 	bw_clip_state		clip_state;
 	bw_src_int_coeffs	src_up_coeffs;
@@ -70,10 +70,10 @@ static void plugin_reset(plugin *instance) {
 
 static void plugin_set_parameter(plugin *instance, size_t index, float value) {
 	switch (index) {
-	case 0:
+	case plugin_parameter_gain:
 		bw_clip_set_gain(&instance->clip_coeffs, value);
 		break;
-	case 1:
+	case plugin_parameter_bias:
 		bw_clip_set_bias(&instance->clip_coeffs, value);
 		break;
 	}
